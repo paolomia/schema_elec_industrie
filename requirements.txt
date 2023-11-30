@@ -1,0 +1,9 @@
+openpyxl
+pandas
+SQLAlchemy==1.4.29
+pyodbc==4.0.31
+python-dotenv
+psycopg==3.0.7
+pgcopy==1.5.0
+matplotlib
+seaborn
