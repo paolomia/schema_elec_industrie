@@ -121,6 +121,95 @@ class GetPrice():
         date = date.strftime('%Y-%m-%d')
         return price, date
 
+class GetADV():
+
+    """
+    A class to get price from a code, using a cache
+    """
+    def __init__(self, path='./cache_adv.json'):
+        import json
+        self.path = path
+        try:
+            with open(path, encoding='utf-8') as f:
+                self.cache = json.load(f)
+        except FileNotFoundError:
+            self.cache = {}
+
+    def update_cache(self):
+        import json
+        with open(self.path, 'w', encoding='utf-8') as f:
+            json.dump(self.cache, f, indent=4)
+
+    def get_adv(self, code: str) -> float:
+        if code is None:
+            return 0
+        if code in self.cache:
+            return self.cache[code]['adv']
+        else:
+            adv = self._get_adv_from_ax(code)
+            self.cache[code] = {'adv': adv}
+            self.update_cache()
+            return adv
+
+    def _get_adv_from_ax(self, code: str) -> (float, datetime.datetime):
+        from spec_equipement import build_tree
+        try:
+            df, tree = build_tree(code)
+            ADV = df[df['code_article'].str.contains('ADV')]['code_article'].values[0]
+        except Exception as e:
+            print(f'Error for {code}: {e}')
+            ADV = None
+        return ADV
+
+class GetBurner():
+
+    """
+    A class to get price from a code, using a cache
+    """
+    def __init__(self, path='./cache_bruleur.json'):
+        import json
+        self.path = path
+        try:
+            with open(path, encoding='utf-8') as f:
+                self.cache = json.load(f)
+        except FileNotFoundError:
+            self.cache = {}
+
+    def update_cache(self):
+        import json
+        with open(self.path, 'w', encoding='utf-8') as f:
+            json.dump(self.cache, f, indent=4)
+
+    def get_burner(self, code: str) -> (float, float):
+        if code is None:
+            return None, None
+        if code in self.cache:
+            return self.cache[code]['puissance'], self.cache[code]['qty']
+        else:
+            puissance, qty = self._get_burner_from_ax(code)
+            self.cache[code] = {'puissance': puissance, 'qty': qty}
+            self.update_cache()
+            return puissance, qty
+
+    def _get_burner_from_ax(self, code: str) -> (float, datetime.datetime):
+        from spec_equipement import build_tree
+        try:
+            df, tree = build_tree(code)
+            pattern = r".*?AIR.*?(\d+)KW.*"
+            import re
+            #  Filter rows using above pattern with regexp
+            not_zero = df.loc[df['total_qty'] != 0]
+            rows = not_zero[not_zero['nom_article'].str.contains(pattern)]
+            #  Extract the first match
+            puissance = rows['nom_article'].str.extract(pattern)[0].values[0]
+            total_qty = rows['total_qty'].values[0]
+            print(puissance, total_qty)
+
+        except Exception as e:
+            print(f'Error for {code}: {e}')
+            puissance = None
+            total_qty = None
+        return puissance, total_qty
 
 def get_armoires() -> pd.DataFrame:
     with Session() as session:
@@ -216,6 +305,20 @@ def get_armoires_etuves(cache=True) -> pd.DataFrame:
     df_etuve.loc[:, 'tot_price_var'] = df_etuve.loc[:, ['MS1_var_price', 'MS2_var_price', 'MS3_var_price', 'MS4_var_price',
                                                             'ME1_var_price', 'ME2_var_price', 'ME3_var_price', 'ME4_var_price']].sum(axis=1)
     df_etuve.loc[:, 'tot_price_material'] = df_etuve.loc[:, ['tot_price_MS', 'tot_price_ME', 'tot_price_demarr', 'tot_price_var']].sum(axis=1)
+
+
+    #  Add code ADV
+    get_adv = GetADV()
+    df_etuve.loc[:, 'ADV'] = df_etuve.loc[:, "Code_Equip"].apply(lambda x: get_adv.get_adv(x))
+
+    #  Add code bruleur
+    get_bruleur = GetBurner()
+    # df_etuve.loc[:, 'puissance_bruleur'] = df_etuve.loc[:, "Code_Equip"].apply(lambda x: get_bruleur.get_burner(x))
+    # Fill two columns
+    df_etuve.loc[:, 'puissance_bruleur'] = df_etuve.apply(lambda x: get_bruleur.get_burner(x['Code_Equip'])[0], axis=1)
+    df_etuve.loc[:, 'qty_bruleur'] = df_etuve.apply(lambda x: get_bruleur.get_burner(x['Code_Equip'])[1], axis=1)
+
+
     # Create a cache
     df_etuve.to_csv('./cache_df_etuve.csv', index=False)
 

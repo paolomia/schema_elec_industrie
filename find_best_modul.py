@@ -24,7 +24,7 @@ modul = modul[~modul['description_divalto'].str.lower().str.contains('monobloc')
 df1 = modul.loc[(modul['Nb_MS'] == 2) & (modul['Nb_ME'] == 1)].copy()
 
 #  Remove value of ME1 < 0.75
-df1 = df1.loc[df1['ME1'] >= 0.75].copy()
+# df1 = df1.loc[df1['ME1'] >= 0.75].copy()
 
 # REGROUPEMENT
 # On prend la liste des cas unique de combinaisons d'armoires
@@ -75,11 +75,11 @@ class Armoire:
         self.ME1 = ME1
         self.MS1_motor = puissance2motor(MS1)
         self.ME1_motor = puissance2motor(ME1)
-        self.MS1_moteur_price = get_price.get_price(self.MS1_motor)
+        self.MS1_moteur_price = get_price.get_price(self.MS1_motor) * 2
         self.ME1_moteur_price = get_price.get_price(self.ME1_motor)
         self.MS1_demarr = moteur2demarrer(MS1)
         self.ME1_demarr = moteur2demarrer(ME1)
-        self.MS1_demarr_price = get_price.get_price(self.MS1_demarr)
+        self.MS1_demarr_price = get_price.get_price(self.MS1_demarr) * 2
         self.ME1_demarr_price = get_price.get_price(self.ME1_demarr)
         self.tot_price = self.MS1_moteur_price + self.ME1_moteur_price + self.MS1_demarr_price + self.ME1_demarr_price
 
@@ -100,4 +100,4 @@ arm_numb = np.array(distinct_cases['Num_AF'], dtype=np.float32)
 arm_tot_price = arm_prices * arm_numb
 
 #  Find best standard
-find_best_standard(n_standard=2, all_armoires=all_armoires, arm_numb=arm_numb, arm_tot_price=arm_tot_price, label='1_standard')
+find_best_standard(n_standard=3, all_armoires=all_armoires, arm_numb=arm_numb, arm_tot_price=arm_tot_price, label='3_standard_modul_2MS')

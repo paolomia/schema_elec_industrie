@@ -14,7 +14,7 @@ from sqlalchemy import (
     Boolean,
     UniqueConstraint)
 from sqlalchemy.orm import relationship, backref
-from src.db_utils.base import Base, engine, ReprTable
+from db_utils.base import Base, engine, ReprTable
 import datetime
 
 class MQTTUserM(Base, ReprTable):
@@ -553,46 +553,7 @@ class AXConfigurationM(Base, ReprTable):
                           type_config=self.type_config,
                           equip1=self.equip1,
                           processed=self.processed)
-    # MAke a new model from:
 
-    # -- dimensional_ax.spec_equip
-    # definition
-    #
-    # -- Drop
-    # table
-    #
-    # -- DROP
-    # TABLE
-    # dimensional_ax.spec_equip;
-    #
-    # CREATE
-    # TABLE
-    # dimensional_ax.spec_equip(id
-    # serial4
-    # NOT
-    # NULL, code_equip
-    # varchar
-    # NOT
-    # NULL, nom_spec
-    # varchar
-    # NULL, value
-    # varchar
-    # NULL, date_creation
-    # timestamp
-    # NULL
-    # DEFAULT
-    # CURRENT_TIMESTAMP, CONSTRAINT
-    # spec_cabine_pkey
-    # PRIMARY
-    # KEY(id)
-    # );
-    # CREATE
-    # INDEX
-    # ix_spec_cabine_code_equip
-    # ON
-    # dimensional_ax.spec_equip
-    # USING
-    # btree(code_equip);
 
 class SpecEquipM(Base, ReprTable):
     """Tableau avec les specs techniques des équipements"""
