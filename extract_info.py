@@ -109,7 +109,7 @@ class GetPrice():
             FROM
             AXPROD.dbo.INVENTITEMPRICE IP
             WHERE ITEMID = :code
-            AND VERSIONID = ''
+            --AND VERSIONID = ''
             ORDER BY ACTIVATIONDATE DESC
             """
             result = session.execute(raw_query, params={'code': code}).fetchone()
@@ -211,6 +211,24 @@ class GetBurner():
             total_qty = None
         return puissance, total_qty
 
+def extract_dimensions(dim_str):
+    """Parse dimensions of armoire from a string"""
+    none_return = pd.Series([None, None, None], index=['Length', 'Width', 'Height'])
+    if pd.isna(dim_str):
+        return none_return
+    dim_str = dim_str.strip().lower()
+    parts = dim_str.split('x')
+    if len(parts) == 3:
+        try:
+            L, l, H = map(int, parts)
+            return pd.Series([L, l, H], index=['Length', 'Width', 'Height'])
+        except ValueError:
+            # Handle case where conversion to int fails
+            return none_return
+    else:
+        # Handle case where the format is not LxlxH
+        return none_return
+
 def get_armoires() -> pd.DataFrame:
     with Session() as session:
         # Read table: dimensional_ax.schema_special_plus
@@ -307,6 +325,7 @@ def get_armoires_etuves(cache=True) -> pd.DataFrame:
     df_etuve.loc[:, 'tot_price_material'] = df_etuve.loc[:, ['tot_price_MS', 'tot_price_ME', 'tot_price_demarr', 'tot_price_var']].sum(axis=1)
 
 
+
     #  Add code ADV
     get_adv = GetADV()
     df_etuve.loc[:, 'ADV'] = df_etuve.loc[:, "Code_Equip"].apply(lambda x: get_adv.get_adv(x))
@@ -318,6 +337,13 @@ def get_armoires_etuves(cache=True) -> pd.DataFrame:
     df_etuve.loc[:, 'puissance_bruleur'] = df_etuve.apply(lambda x: get_bruleur.get_burner(x['Code_Equip'])[0], axis=1)
     df_etuve.loc[:, 'qty_bruleur'] = df_etuve.apply(lambda x: get_bruleur.get_burner(x['Code_Equip'])[1], axis=1)
 
+    #  Add size armoire
+    df_etuve.loc[:, ['Length', 'Width', 'Height']] = df_etuve.loc[:, 'Armoire'].apply(extract_dimensions)
+    df_etuve['volume'] = df_etuve['Length'] * df_etuve['Width'] * df_etuve['Height']
+    #  Fix lowercase / whitespaces
+    df_etuve['Dem_Mot'] = df_etuve['Dem_Mot'].str.strip().str.lower()
+    df_etuve['Chauff'] = df_etuve['Chauff'].str.strip().str.lower()
+    df_etuve['Regul'] = df_etuve['Regul'].str.strip().str.lower()
 
     # Create a cache
     df_etuve.to_csv('./cache_df_etuve.csv', index=False)

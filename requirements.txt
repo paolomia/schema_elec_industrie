@@ -11,3 +11,4 @@ seaborn
 scipy
 numba
 treelib
+scikit-learn

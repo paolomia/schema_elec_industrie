@@ -18,15 +18,23 @@ import datetime
 
 
 # @numba.jit(nopython=True)
-def calculate(M_list, P_list, arm_numb, arm_tot_price):
-    n_remplace = 0
-    ecart_tot = 0
-    for Mj, Pj in zip(M_list, P_list):
-        n_remplace_j = np.dot(Mj, arm_numb)
-        n_remplace += n_remplace_j
-        ecart_tot += n_remplace_j * Pj - np.dot(Mj, arm_tot_price)
-    ecart = ecart_tot / n_remplace
-    return n_remplace, ecart
+def simulate_replacement(M_list, P_list, arm_numb, arm_tot_price):
+    """
+
+    :param M_list: M_list[i][j] = 1 iff the j-th armoire can be replaced by the i-th standard and can not be replaced by a cheaper standard
+    :param P_list: List of prices for each type of standard
+    :param arm_numb: List of number for each type of armoire
+    :param arm_tot_price: List of prices for each type of armoire
+    :return:
+    """
+    # Store the number of armoires replaced
+    n_remplace = np.zeros(len(M_list), dtype=np.float32)
+    ecart_tot = np.zeros(len(M_list), dtype=np.float32)
+    for i in range(len(M_list)):
+        n_remplace[i] = np.dot(M_list[i], arm_numb)
+        ecart_tot[i] = n_remplace[i] * P_list[i] - np.dot(M_list[i], arm_tot_price)
+    ecart_moyen = sum(ecart_tot) / sum(n_remplace)
+    return n_remplace, ecart_moyen
 
 
 def find_best_standard(n_standard, all_armoires, arm_numb, arm_tot_price, label=None):
@@ -40,17 +48,27 @@ def find_best_standard(n_standard, all_armoires, arm_numb, arm_tot_price, label=
     nombre_armoires = int(np.sum(arm_numb))
 
     for A_list in combinations(all_armoires, n_standard):
+        # A_list is a tuple of n_standard armoires, they are already sorted by increasing price
+        # P_list is the price of each armoire
         P_list = [A.price() for A in A_list]
+        # M \in M_list is the replacement vector for each standard. M[i] = 1 iff the i-th armoire
+        # can be replaced by this standard AND can not be replaced by a cheaper standard
         M_list = [A_list[0].mask]
+        # in total_anti_mask, 1 means that the armoire can not be replaced by any standard
+        total_anti_mask = 1 - M_list[0]
         for A in A_list[1:]:
-            M_list.append(A.mask * (1 - M_list[0]))
+            M_list.append(A.mask * total_anti_mask)
+            total_anti_mask *= (1 - A.mask)
 
-        n_remplace, ecart = calculate(M_list, P_list, arm_numb, arm_tot_price)
+
+        n_remplace, ecart_moyen = simulate_replacement(M_list, P_list, arm_numb, arm_tot_price)
+        n_remplace_total = np.sum(n_remplace)
+        perc_remplace_total = int(100 * n_remplace_total / nombre_armoires)
         spec_armoire = [A.MS1 for A in A_list] + [A.ME1 for A in A_list]
 
-        cache.append([int(n_remplace), int(100*n_remplace/nombre_armoires), int(ecart)] + spec_armoire)
+        cache.append([n_remplace_total, perc_remplace_total, int(ecart_moyen)] + list(n_remplace) + spec_armoire)
 
-    df = pd.DataFrame(cache, columns=['n_remplace', '% Remp', 'ecart'] + [f'MS{i+1} kW' for i in range(n_standard)] + [f'ME{i+1} kW' for i in range(n_standard)])
+    df = pd.DataFrame(cache, columns=['n_remplace', '% Remp', 'ecart'] + [f'Rempl_{i+1}' for i in range(n_standard)] + [f'MS{i+1} kW' for i in range(n_standard)] + [f'ME{i+1} kW' for i in range(n_standard)])
 
     best_results = []
 

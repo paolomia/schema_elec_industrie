@@ -10,8 +10,10 @@ csv_path = './cache_df_cache.csv'
 df = get_armoires_etuves(cache=False)
 print(df)
 
+# MOD-HT
+df = df[df['ADV'] == "ADV-ETUVE-MOD-HT"].copy()
 # On considère d'abord le cas avec un seul moteur soufflage et extraction
-df1 = df.loc[(df['Nb_MS'] == 1) & (df['Nb_ME'] == 1)].copy()
+df1 = df.loc[(df['Nb_MS'] == 2) & (df['Nb_ME'] == 1)].copy()
 
 df_sol = pd.read_csv('./cache_df_cache.csv')
 
@@ -52,7 +54,7 @@ ax.scatter(MS_expensive_power, ME_expensive_power, s=100, color='red', marker='x
 
 plt.xlabel('Puissance soufflage (kW)')
 plt.ylabel('Puissance extraction (kW)')
-plt.title('Distribution des puissances moteurs- pour les étuves Nb_MS=1, Nb_ME=1')
+plt.title('Distribution des puissances moteurs- pour les étuves Nb_MS=2, Nb_ME=1')
 plt.tight_layout()
 #  Save figure in ./plots
 plt.savefig('./plots/sol.png')

@@ -9,26 +9,31 @@ import matplotlib.pyplot as plt
 # ╠═╣╠╦╝║║║║ ║║╠╦╝║╣ ╚═╗  ╠═╣  ╠═╣║║║╠═╣║  ║╚═╗║╣ ╠╦╝
 # ╩ ╩╩╚═╩ ╩╚═╝╩╩╚═╚═╝╚═╝  ╩ ╩  ╩ ╩╝╚╝╩ ╩╩═╝╩╚═╝╚═╝╩╚═
 
+# df_etuve = get_armoires_etuves(cache=False)
+# df_etuve = df_etuve[df_etuve['type_equip_divalto'] == 'ETUVE']
+# monobloc = df_etuve[(df_etuve['Chauff'].str.lower().str.strip() == 'résist élec') & (df_etuve['Nb_MS'] == 1)]
+# monobloc = monobloc[~monobloc['description_divalto'].str.lower().str.contains('modul')]
+# # Prend toutes les étves qui ne sont pas dans "monobloc"
+# modul = df_etuve[~df_etuve['Num_AF'].isin(monobloc['Num_AF'])]
+# # On elimine ces qui ont "monobloc" dans la description
+# modul = modul[~modul['description_divalto'].str.lower().str.contains('monobloc')]
+
 df_etuve = get_armoires_etuves(cache=False)
-df_etuve = df_etuve[df_etuve['type_equip_divalto'] == 'ETUVE']
-monobloc = df_etuve[(df_etuve['Chauff'].str.lower().str.strip() == 'résist élec') & (df_etuve['Nb_MS'] == 1)]
-monobloc = monobloc[~monobloc['description_divalto'].str.lower().str.contains('modul')]
-# Prend toutes les étves qui ne sont pas dans "monobloc"
-modul = df_etuve[~df_etuve['Num_AF'].isin(monobloc['Num_AF'])]
-# On elimine ces qui ont "monobloc" dans la description
-modul = modul[~modul['description_divalto'].str.lower().str.contains('monobloc')]
+df = df_etuve[df_etuve['ADV'] == "ADV-ETUVE-MOD-HT"].copy()
+# Remove variateur
+df = df.loc[df['Dem_Mot'].str.lower().str.strip() != 'variateur'].copy()
 
 
 
 # On considère d'abord le cas avec un seul moteur soufflage et extraction
-df1 = modul.loc[(modul['Nb_MS'] == 2) & (modul['Nb_ME'] == 1)].copy()
+df = df.loc[(df['Nb_MS'] == 2) & (df['Nb_ME'] == 1)].copy()
 
 #  Remove value of ME1 < 0.75
 # df1 = df1.loc[df1['ME1'] >= 0.75].copy()
 
 # REGROUPEMENT
 # On prend la liste des cas unique de combinaisons d'armoires
-distinct_cases = df1.groupby(['ME1', 'MS1'], as_index=False)['Num_AF'].count()
+distinct_cases = df.groupby(['ME1', 'MS1'], as_index=False)['Num_AF'].count()
 # distinct_cases = distinct_cases.loc[distinct_cases['ME1'] >= 0.75].copy()
 
 # Pour chaque cas on calcule le prix du moteur + le prix du demarreur
