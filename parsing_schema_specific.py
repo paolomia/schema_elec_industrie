@@ -21,7 +21,7 @@ copied_file_path = "./temp/Listing Schémas.xlsm"
 
 
 # Copy the file to the destination directory
-# shutil.copy(source_file, destination_directory)
+shutil.copy(source_file, destination_directory)
 print(f"File copied successfully to {destination_directory}")
 
 # Sheet name to read

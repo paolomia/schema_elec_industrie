@@ -314,15 +314,17 @@ def get_armoires_etuves(cache=True) -> pd.DataFrame:
     # Add price ofr each AF
     df_etuve.loc[:, "code_armoire"] = df_etuve.loc[:, "Num_AF"] + df_etuve.loc[:, "Lettrage"] + 'V1'
     df_etuve.loc[:, 'armoire_price'] = df_etuve.loc[:, "code_armoire"].apply(lambda x: get_price.get_price(x))
+    df_etuve.loc[:, "code_soufflage"] = df_etuve.loc[:, "Num_AF"] + df_etuve.loc[:, "Lettrage"] + 'I'
+    df_etuve.loc[:, 'soufflage_price'] = df_etuve.loc[:, "code_soufflage"].apply(lambda x: get_price.get_price(x))
 
     #Add a totale price for MS_motor, ME_motor, demarrer, variator
     df_etuve.loc[:, 'tot_price_MS'] = df_etuve.loc[:, ['MS1_motor_price', 'MS2_motor_price', 'MS3_motor_price', 'MS4_motor_price']].sum(axis=1)
     df_etuve.loc[:, 'tot_price_ME'] = df_etuve.loc[:, ['ME1_motor_price', 'ME2_motor_price', 'ME3_motor_price', 'ME4_motor_price']].sum(axis=1)
     df_etuve.loc[:, 'tot_price_demarr'] = df_etuve.loc[:, ['MS1_demarr_price', 'MS2_demarr_price', 'MS3_demarr_price', 'MS4_demarr_price',
                                                             'ME1_demarr_price', 'ME2_demarr_price', 'ME3_demarr_price', 'ME4_demarr_price']].sum(axis=1)
-    df_etuve.loc[:, 'tot_price_var'] = df_etuve.loc[:, ['MS1_var_price', 'MS2_var_price', 'MS3_var_price', 'MS4_var_price',
-                                                            'ME1_var_price', 'ME2_var_price', 'ME3_var_price', 'ME4_var_price']].sum(axis=1)
-    df_etuve.loc[:, 'tot_price_material'] = df_etuve.loc[:, ['tot_price_MS', 'tot_price_ME', 'tot_price_demarr', 'tot_price_var']].sum(axis=1)
+    # df_etuve.loc[:, 'tot_price_var'] = df_etuve.loc[:, ['MS1_var_price', 'MS2_var_price', 'MS3_var_price', 'MS4_var_price',
+    #                                                         'ME1_var_price', 'ME2_var_price', 'ME3_var_price', 'ME4_var_price']].sum(axis=1)
+    df_etuve.loc[:, 'tot_price_material'] = df_etuve.loc[:, ['tot_price_MS', 'tot_price_ME', 'tot_price_demarr']].sum(axis=1)
 
 
 
@@ -344,6 +346,9 @@ def get_armoires_etuves(cache=True) -> pd.DataFrame:
     df_etuve['Dem_Mot'] = df_etuve['Dem_Mot'].str.strip().str.lower()
     df_etuve['Chauff'] = df_etuve['Chauff'].str.strip().str.lower()
     df_etuve['Regul'] = df_etuve['Regul'].str.strip().str.lower()
+
+    # All etuves BT with heating
+    df_etuve.loc[(df_etuve['Chauff'].str.contains('apport') ) & (df_etuve['ADV'] == 'ADV-ETUVE-MOD-BT'), 'ADV'] = 'ADV-ETUVE-MOD-HT'
 
     # Create a cache
     df_etuve.to_csv('./cache_df_etuve.csv', index=False)
@@ -402,6 +407,11 @@ def update_all_descriptions():
 
 
 if __name__ == '__main__':
-    print(get_description('AF005087-D'))
-    update_all_descriptions()
+    # print(get_description('AF005087-D'))
+    # update_all_descriptions()
+    df_etuve = get_armoires_etuves(cache=False)
+    get_price = GetPrice()
+    # articles = ['LP02 203', 'LP02 207', 'LP02 209', 'LP02 211', 'LP02 219', 'LP02 221', 'LP02 222']
+    # for article in articles:
+    #     print(article, get_price.get_price(article))
 
