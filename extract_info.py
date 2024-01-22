@@ -61,6 +61,47 @@ map_moteur = [
     {"min": 22, "max": 22, 'power': 22, "code": "KU08 28"},
 
 ]
+
+def add_rotovent(power: float) -> str:
+    """
+    Add a rotovent based on power
+    """
+#     SOUFFLAGE:
+#    | Code groupe | Code ventilateur | Puissance | Débit | Remplacement | Prix   |
+#    |-------------|------------------|-----------|-------|--------------|--------|
+#    | DH02 256    | LP02 203         | 1.5 kW    | 13000 | A            | 960 €  |
+#    | DH02 258    | LP02 207         | 4 kW      | 18000 | A            | 1234 € |
+#    | DH02 260    | LP02 209         | 5.5 kW    | 25000 | B            | 1500 € |
+#    | DH02 262    | LP02 211         | 7.5 kW    | 34000 | B            | 1947 € |
+#
+# EXTRACTION:
+#     | Code ventilateur | Puissance | Débit        | Prix  |
+#     |------------------|-----------|--------------|-------|
+#     | LP02 219         | 0.18 kW   | < 140 m^3/h  | 566 € |
+#     | LP02 220         | 0.18 k W  | < 400 m^3/h  | 575 € |
+#     | LP02 221         | 0.37 kW   | < 900 m^3/h  | 793 € |
+#     | LP02 222         | 1.10 kW   | < 1400 m^3/h | 933 € |
+
+    map_rotovent = [
+        {'power': 0.18, 'code': 'LP02 219', 'type': 'ext'},
+        {'power': 0.37, 'code': 'LP02 221', 'type': 'ext'},
+        {'power': 1.1, 'code': 'LP02 222', 'type': 'ext'},
+
+        {'power': 1.5, 'code': 'LP02 203', 'type': 'souf'},
+        {'power': 4, 'code': 'LP02 207', 'type': 'souf'},
+        {'power': 5.5, 'code': 'LP02 209', 'type': 'souf'},
+        {'power': 7.5, 'code': 'LP02 211', 'type': 'souf'},
+    ]
+    for row in map_rotovent:
+        if row['power'] == power:
+        # if row['power'] == power and row['type'] == type:
+            return row['code']
+    return None
+
+
+
+
+
 def puissance2motor(power: float) -> str:
 
     if power is None:
@@ -350,6 +391,32 @@ def get_armoires_etuves(cache=True) -> pd.DataFrame:
     # All etuves BT with heating
     df_etuve.loc[(df_etuve['Chauff'].str.contains('apport') ) & (df_etuve['ADV'] == 'ADV-ETUVE-MOD-BT'), 'ADV'] = 'ADV-ETUVE-MOD-HT'
 
+
+    for col in ['MS1', 'MS2', 'MS3', 'MS4', 'ME1', 'ME2', 'ME3', 'ME4']:
+        # Add a rotovent column for each motor
+        rotovent_col = col + '_rotovent'
+        df_etuve.loc[:, rotovent_col] = None
+        # Uniquement pour les étuves HT, on ajoute les references des rotoventilateurs
+        df_etuve.loc[df_etuve['ADV'] == 'ADV-ETUVE-MOD-HT', rotovent_col] = df_etuve.apply(lambda x: add_rotovent(x[col]), axis=1)
+
+    #  Add price of rotovent
+        price_col = rotovent_col + '_price'
+        df_etuve.loc[:, price_col] = df_etuve.loc[:, rotovent_col].apply(lambda x: get_price.get_price(x))
+
+    #  Take the sum of all rotovent price
+    df_etuve.loc[:, 'tot_price_rotovent'] = df_etuve.loc[:,
+                                            ['MS1_rotovent_price',
+                                             'MS2_rotovent_price',
+                                             'MS3_rotovent_price',
+                                             'MS4_rotovent_price',
+                                            'ME1_rotovent_price',
+                                            'ME2_rotovent_price',
+                                            'ME3_rotovent_price',
+                                            'ME4_rotovent_price',
+                                            ]].sum(axis=1)
+
+
+
     # Create a cache
     df_etuve.to_csv('./cache_df_etuve.csv', index=False)
 
@@ -411,7 +478,7 @@ if __name__ == '__main__':
     # update_all_descriptions()
     df_etuve = get_armoires_etuves(cache=False)
     get_price = GetPrice()
-    # articles = ['LP02 203', 'LP02 207', 'LP02 209', 'LP02 211', 'LP02 219', 'LP02 221', 'LP02 222']
-    # for article in articles:
-    #     print(article, get_price.get_price(article))
+    articles = ['LP02 203', 'LP02 207', 'LP02 209', 'LP02 211', 'LP02 219', 'LP02 220', 'LP02 221', 'LP02 222']
+    for article in articles:
+        print(article, get_price.get_price(article))
 
